@@ -58,7 +58,7 @@
                 {{ enemy.name }}
 
                 <div class="enemy-character">
-                    <img src="../assets/ogre.gif" alt="enemy">
+                    <img v-bind:src="getEnemyImage(enemy.name)" v-bind:alt="'../assets/' + enemy.name + '.gif'">
                 </div>
             </div>
         </div>
@@ -109,17 +109,28 @@ export default {
             elapsedTime: 0, // set the initial elapsed time to 0 seconds
             elapsedTimeSeconds: ref(0),
             tilesMoved: 0,
-
+            enemyImage: '',
+            allowMovement: true,
             enemyNames: [
-                'Soldier',
-                'Goblin',
-                'Dragon',
-                'Ogre',
-                'Bandit',
-                'Skeleton',
-                'Zombie',
-                'Giant Spider',
+                'soldier',
+                'goblin',
+                'dragon',
+                'ogre',
+                'bandit',
+                'skeleton',
+                'zombie',
+                'spider',
             ],
+            enemyImages: {
+                Soldier: '../assets/soldier.gif',
+                Goblin: '../assets/goblin.gif',
+                Dragon: '../assets/dragon.gif',
+                Ogre: '../assets/ogre.gif',
+                Bandit: '../assets/bandit.gif',
+                Skeleton: '../assets/skeleton.gif',
+                Zombie: '../assets/zombie.gif',
+                GiantSpider: '../assets/spider.gif'
+            },
             attackNames: [
                 'Sword Slash',
                 'Sword Stab',
@@ -151,12 +162,15 @@ export default {
     methods: {
         startGame() {
             this.startTime = Date.now();
-            setInterval(() => {
+            setInterval(() => { 
                 this.elapsedTimeSeconds = Math.floor((Date.now() - this.startTime) / 1000);
             }, 1000);
         },
 
         movePlayer(event) {
+            if (this.battleActive || !this.allowMovement) {
+                return;
+            }
             if (this.battleActive) {
                 return;
             }
@@ -198,6 +212,7 @@ export default {
                         this.currentHealth += 10;
                     }
                 }
+                
                 for (let i = 0; i < this.spikeTiles.length; i++) {
                     const spikeTile = this.spikeTiles[i];
                     if (spikeTile.row === newRow && spikeTile.tile === newTile) {
@@ -258,17 +273,17 @@ export default {
             const endTime = Date.now();
 
             if (this.eggCount === 24) {
-                alert(`Congratulations! You collected all the eggs in ${ this.elapsedTime = Math.round((endTime - this.startTime) / 1000)} seconds!`);
+                alert(`Congratulations! You collected all the eggs in ${this.elapsedTime = Math.round((endTime - this.startTime) / 1000)} seconds!`);
             } else if (this.eggCount === 5 || this.eggCount === 10 || this.eggCount === 15 || this.eggCount === 19) {
-                
+                this.allowMovement = false;
                 this.gameMessage = "You encountered an enemy!";
                 setTimeout(() => {
-                    this.battleLog = ''
-                    this.battleActive = true;
-                    this.spawnEnemy();
-                    this.gameMessage = false;
+                this.battleLog = '';
+                this.battleActive = true;
+                this.spawnEnemy();
+                this.gameMessage = false;
                 }, 900);
-                
+
                 return;
             }
         },
@@ -322,8 +337,8 @@ export default {
     },
 
     attackEnemy(attack) {
-        const damage = (attack.damage + Math.floor(Math.random() * 15) + 3);
-        this.battleLog = `${this.player.name} used "${attack.name}" and dealt ${attack.damage} damage`;
+        const damage = (attack.damage + Math.floor(Math.random() * 10) + 3);
+        this.battleLog = `${this.player.name} used "${attack.name}" and dealt ${damage} damage`;
         this.enemy.health -= damage;
 
         // Ensure enemy health doesn't go below 0
@@ -357,7 +372,23 @@ export default {
         }
       }, 1000);
     },
+    getEnemyImage(enemyType) {
+        const basePath = '../assets/';
+        const imageMapping = {
+            'Soldier': require(`${basePath}soldier.gif`),
+            'Goblin': require(`${basePath}goblin.gif`),
+            'Dragon': require(`${basePath}dragon.gif`),
+            'Ogre': require(`${basePath}ogre.gif`),
+            'Bandit': require(`${basePath}bandit.gif`),
+            'Skeleton': require(`${basePath}skeleton.gif`),
+            'Zombie': require(`${basePath}zombie.gif`),
+            'Giant Spider': require(`${basePath}spider.gif`),
+        };
 
+        console.log("Enemy image path for", enemyType, ":", imageMapping[enemyType]);
+
+        return imageMapping[enemyType] || '';
+    },
     healPlayer() {
       if (this.isPlayerTurn) {
         const healingAmount = Math.floor(Math.random() * 25) + 30;
@@ -382,19 +413,20 @@ export default {
 
             // Ensure player's maxHealth doesn't go below 0
             if (this.player.maxHealth < 0) {
-                this.player.maxHealth = 0;
+            this.player.maxHealth = 0;
             }
 
             // Update player's current health to match the reduced maxHealth if needed
             if (this.player.health > this.player.maxHealth) {
-                this.player.health = this.player.maxHealth;
+            this.player.health = this.player.maxHealth;
             }
         }
 
         setTimeout(() => {
-            this.eggCount ++;
+            this.eggCount++;
             this.battleActive = false;
             this.resetGame();
+            this.allowMovement = true; // Re-enable player movement
         }, 3000);
     },
     resetGame() {
@@ -403,12 +435,16 @@ export default {
         this.enemy.health = this.enemy.maxHealth;
         this.isPlayerTurn = true;
     },
-
+    },
+    computed: {
+        enemyImagePath() {
+            return this.getEnemyImage(this.enemy.type);
+        },
     },
 };
 </script>
-  <style>
-  .health-bar {
+<style>
+.health-bar {
   width: 200px;
   height: 20px;
   background-color: #333;
@@ -419,6 +455,12 @@ export default {
   height: 100%;
   background-color: red;
   transition: width 0.3s ease-in-out;
+}
+.enemy-character{
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
   .row {
     display: flex;
@@ -435,7 +477,7 @@ export default {
     background-color: rgb(70, 194, 70);
   }
   .egg {
-  background-image: url('../assets/egg.png');
+  background-image: url('../assets/snickers.png');
   background-repeat: no-repeat;
   background-size: contain;
   width: 100%;
