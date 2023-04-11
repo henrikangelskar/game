@@ -40,6 +40,7 @@
 
     <div class="arena" v-if="battleActive">
         <div>You encountered an enemy!</div>
+        <div v-if="enemy.name === 'ivor' || enemy.name === 'igor'">(BOSS)</div>
         <div id="battle-log">Battlelog: {{ battleLog }}</div>
         <div class="player-containers">
             <div class="player-container">
@@ -149,8 +150,8 @@ export default {
                 name: 'You',
                 health: ref(100),
                 maxHealth: ref(100),
-                attack1: ref({ name: 'Kick', damage: Math.floor(Math.random() * 10) + 15  }),
-                attack2: ref({ name: 'Punch', damage: Math.floor(Math.random() * 30) + 5 }),
+                    attack1: ref({ name: 'Kick', damage: 0 }),
+                    attack2: ref({ name: 'Punch', damage: 0 }),
                 hasSword: false,
                 hasShield: false,
             }),
@@ -239,6 +240,11 @@ export default {
             const newRow = this.playerPosition.row + row;
             const newTile = this.playerPosition.tile + tile;
 
+            // check if new row and tile is within bounds of the map array
+            if (newRow < 0 || newRow >= this.map.length || newTile < 0 || newTile >= this.map[newRow].length) {
+                return;
+            }
+
             if (this.map[newRow][newTile]) {
                 return;
             }
@@ -309,7 +315,7 @@ export default {
                     this.enemy = {
                         name: enemyName,
                         health: 50,
-                        maxHealth:50,
+                        maxHealth: 50,
                         attack1: { name: attack1, damage: 5 }, 
                         attack2: { name: attack2, damage: 5 }  
                     };
@@ -352,7 +358,7 @@ export default {
             const endTime = Date.now();
 
             if (this.eggCount === 24) {
-                this.gameMessage = `Congratulations! You collected all the eggs in ${this.elapsedTime = Math.round((endTime - this.startTime) / 1000)} seconds!`;
+                this.gameMessage = `Congratulations! You collected all the snickers in ${this.elapsedTime = Math.round((endTime - this.startTime) / 1000)} seconds!`;
                 this.allowMovement = false;
             } else if (this.eggCount === 5 || this.eggCount === 10 || this.eggCount === 15 || this.eggCount === 19) {
                 this.allowMovement = false;
@@ -466,17 +472,24 @@ export default {
             this.shieldTile = { row, tile };
         },
         attackEnemy(attack) {
-            let damage = (attack.damage + Math.floor(Math.random() * 10) + 3);
-            if (this.player.hasSword) {
-                damage = Math.floor(damage * 1.03); // Increase damage by 3% if the player has a sword
+            let damage;
+            if (attack.name === 'Kick') {
+                damage = Math.floor(Math.random() * 40);
+            } else if (attack.name === 'Punch') {
+                damage = Math.floor(Math.random() * 15) + 15;
             }
+
+            if (this.player.hasSword) {
+                damage = Math.floor(damage * 1.05); // Increase damage by 5% if the player has a sword
+            }
+
             this.battleLog = `${this.player.name} used "${attack.name}" and dealt ${damage} damage`;
             this.enemy.health -= damage;
 
             this.damageEffect.enemy = true;
             setTimeout(() => {
                 this.damageEffect.enemy = false;
-            }, 1000);
+            }, 500);
 
             // Ensure enemy health doesn't go below 0
             if (this.enemy.health < 0) {
@@ -492,17 +505,13 @@ export default {
                 }, 3000);
             }
         },
-
         enemyAttack() {
             this.battleLog = `${this.enemy.name} is thinking...`;
 
             setTimeout(() => {
-                setTimeout(() => {
                 this.damageEffect.player = true;
-                    setTimeout(() => {
-                        this.damageEffect.player = false;
-                    }, 1000);
-                    // ...
+                setTimeout(() => { 
+                    this.damageEffect.player = false;
                 }, 1000);
                 let attacks = [this.enemy.attack1, this.enemy.attack2];
                 let attack = attacks[Math.floor(Math.random() * attacks.length)];
@@ -522,7 +531,7 @@ export default {
 
         healPlayer() {
         if (this.isPlayerTurn) {
-            const healingAmount = Math.floor(Math.random() * 25) + 30;
+            const healingAmount = Math.floor(Math.random() * 80) + 20;
             this.damageEffect.playerHeal = true;
             setTimeout(() => {
                 this.damageEffect.playerHeal = false;
@@ -531,7 +540,7 @@ export default {
             if (this.player.health > this.player.maxHealth ) {
             this.player.health  = this.player.maxHealth ;
             }
-            this.battleLog = `You got healed for ${healingAmount}`;
+            this.battleLog = `You got healed for ${healingAmount} health`;
             this.isPlayerTurn = false;
             setTimeout(() => {
             this.enemyAttack();
@@ -544,16 +553,16 @@ export default {
 
             if (winner !== 'player') {
                 // Deduct 30 from player's maxHealth
-                this.player.maxHealth -= 30;
+                this.currentHealth -= 30;
 
                 // Ensure player's maxHealth doesn't go below 0
                 if (this.player.maxHealth < 0) {
-                this.player.maxHealth = 0;
+                    this.player.maxHealth = 0;
                 }
 
                 // Update player's current health to match the reduced maxHealth if needed
                 if (this.player.health > this.player.maxHealth) {
-                this.player.health = this.player.maxHealth;
+                    this.player.health = this.player.maxHealth;
                 }
             }
 
@@ -713,7 +722,7 @@ export default {
     justify-content: center;
     background: url("../assets/woods.png");
     object-fit: cover;
-    background-size:     cover;                      /* <------ */
+    background-size:     cover;             
     background-repeat:   no-repeat;
     background-position: center center; 
 }
@@ -829,12 +838,8 @@ export default {
 }
 .red-transition {
     background-color: rgba(255, 0, 0, 0.2);
-    width: 100%;
-    height: 100%;
     animation: redTransition 1s ease-out forwards;
-    clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%, 5% 50%, 0% 100%);
     border-radius: 60%;
-
 }
 
 .green-transition {
