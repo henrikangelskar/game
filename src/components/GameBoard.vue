@@ -147,7 +147,7 @@ export default {
             battleActive: false,
             battleLog: '',
             player: ref({
-                name: 'You',
+                name: 'you',
                 health: ref(100),
                 maxHealth: ref(100),
                     attack1: ref({ name: 'Kick', damage: 0 }),
@@ -523,6 +523,7 @@ export default {
                 this.isPlayerTurn = true;
                 if (this.player.health  <= 0) {
                     this.endGame('enemy');
+                    this.player.health = 0;
                 } else {
                     this.battleLog = `${this.enemy.name} used "${attack.name}" and dealt ${damage} damage. `;
                 }
